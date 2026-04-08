@@ -22,5 +22,6 @@ Após o sucesso total e a conclusão dos testes (ou caso o Padawan decida encerr
 1. Validar o funcionamento final do projeto Jogo da Velha LAN.
 2. Apresentar um resumo didático de todos os conceitos chaves abordados (Ex: WebSocket lifecycle, Tornado IOLoop, Imutabilidade em DataClasses, Modularização ES6, Singletons, etc).
 3. Apresentar as opções de exposição final do projeto, explicando a diferença técnica entre o `make tunnel` (SSH simples) e o `make ngrok` (opção profissional com mais recursos), incentivando o Padawan a testar o jogo com amigos fora da rede local.
-4. Parabenizar o Padawan pela conclusão da jornada.
+4. Aconselhar o Padawan a criar um **novo repositório dedicado no GitHub** para hospedar sua versão final do jogo. Instrua-o a utilizar o arquivo `README.md` localizado na raiz da pasta `codigos/jogo-da-velha-websocket/` como a documentação principal deste novo repositório, garantindo uma apresentação profissional do seu trabalho.
+5. Parabenizar o Padawan pela conclusão da jornada.
 </closing_ceremony>
