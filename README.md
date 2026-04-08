@@ -1,4 +1,4 @@
-# ⚔️ Jogo da Velha Distribuído — Dinâmica Prática com IA
+# ⚔️ Jogo da Velha — Imersão em Sistemas Distribuídos com IA
 
 Seja bem-vindo ao ambiente de criação do **Jogo da Velha Distribuído**, utilizando uma **IA de Mentoria** para guiar o aprendizado em Python, Tornado e WebSockets.
 
