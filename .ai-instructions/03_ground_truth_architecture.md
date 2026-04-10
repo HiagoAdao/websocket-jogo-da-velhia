@@ -5,35 +5,37 @@
 ```
 jogo-da-velha-websocket/    ← Raiz do Projeto
 ├── main.py                 ← Bootstrap: wiring de todas as camadas
-├── config.py               ← Infraestrutura transversal (usado por todas as camadas)
-├── logger.py               ← Infraestrutura transversal (idem)
 ├── Makefile
 ├── requirements.txt
 │
-├── game/                   ← Camada de Domínio (pura, zero dependência de framework)
-│   ├── __init__.py
-│   ├── entities.py         ← GameState — modelo de dados imutável
-│   └── logic.py            ← GameLogic — regras do jogo
+├── core/                   ← Camada de Infraestrutura/Configuração
+│   ├── config.py           ← Configurações centralizadas (LCD, Buzzer, Rede)
+│   └── logger.py           ← Logger centralizado
 │
-├── server/                 ← Camada de Aplicação (Tornado-specific)
-│   ├── __init__.py
-│   ├── handlers.py         ← Transporte HTTP + WebSocket
+├── game/                   ← Camada de Domínio (Pura)
+│   ├── entities.py         ← GameState (modelo imutável)
+│   └── logic.py            ← GameLogic (regras)
+│
+├── hardware/               ← Camada de Acesso a Hardware (HIL)
+│   ├── display.py          ← LCDManager (RPLCD)
+│   ├── buzzer.py           ← BuzzerManager (PWM)
+│   └── system.py           ← HardwareSystem (Fachada/Facade)
+│
+├── server/                 ← Camada de Aplicação (Tornado)
+│   ├── handlers.py         ← WebSocket + HTTP
 │   └── manager.py          ← Orquestração de salas
 │
-└── client/                 ← Camada de Apresentação
+└── client/                 ← Camada de Apresentação (Frontend)
     └── static/
         ├── index.html
-        ├── style.css
-        ├── main.js
-        ├── ui.js
-        └── ws.js
-```
+        └── [js modules]
 
 **Regra de Dependência (Dependency Rule):**
-- `game/` não conhece `server/`, `config` nem `logger` — domínio puro
-- `server/` conhece `game/`, `config` e `logger`
-- `main.py` conhece tudo e faz o wiring
-- `config.py` e `logger.py` na raiz são transversais a todas as camadas
+- `game/`: Totalmente isolada (Domínio).
+- `core/`: Transversal, usada por todos.
+- `hardware/`: Depende de `core/`.
+- `server/`: Depende de `game/`, `core/` e `hardware/`.
+- `main.py`: Faz o wiring de tudo.
 
 ---
 
@@ -72,38 +74,37 @@ Use este diagrama para reforçar a imutabilidade do `GameState` e a separação 
 ```mermaid
 classDiagram
     class Config {
-        <<Frozen DataClass — raiz>>
-        +int PORT
-        +str LISTEN_ADDRESS
-        +str STATIC_PATH
-        +str DEFAULT_PAGE
+        <<core/config.py>>
+        +PORT
+        +LCD: LCDSettings
+        +BUZZER: BuzzerSettings
+    }
+    class HardwareSystem {
+        <<hardware/system.py>>
+        -lcd: LCDManager
+        -buzzer: BuzzerManager
+        +notify_victory(winner)
+        +update_game_status(...)
+    }
+    class LCDManager {
+        <<hardware/display.py>>
+        +show_status(...)
+        +show_idle(ip)
+    }
+    class BuzzerManager {
+        <<hardware/buzzer.py>>
+        +play_mario_victory()
+        +beep(...)
     }
     class RoomManager {
         <<server/manager.py>>
-        +dict rooms
-        +create_room() string
-        +get_room(id) GameLogic
-        +delete_room(id)
+        +rooms: dict
+        +create_room()
     }
-    class GameLogic {
-        <<game/logic.py>>
-        -GameState _state
-        +state
-        +make_move(row, col, symbol)
-        +assign_player(id)
-        +can_start()
-        +reset()
-    }
-    class GameState {
-        <<Immutable DataClass — game/entities.py>>
-        +list board
-        +str current_turn
-        +str winner
-        +bool game_over
-        +to_dict() dict
-    }
-    RoomManager "1" *-- "many" GameLogic : gerencia salas
-    GameLogic "1" *-- "1" GameState : recria o estado
+    HardwareSystem "1" *-- "1" LCDManager
+    HardwareSystem "1" *-- "1" BuzzerManager
+    RoomManager "1" *-- "many" GameLogic
+    GameLogic "1" *-- "1" GameState
 ```
 
 ### Arquitetura de Módulos (Frontend ES6)

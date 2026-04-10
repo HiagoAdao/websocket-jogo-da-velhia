@@ -9,7 +9,7 @@ A arquitetura segue **Clean Architecture** com separação explícita de camadas
 
 ---
 
-### 1. `logger.py` ← **raiz do projeto**
+### 1. `core/logger.py`
 ```python
 import logging
 
@@ -24,21 +24,34 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 ```
 
-### 2. `config.py` ← **raiz do projeto**
+### 2. `core/config.py`
 ```python
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
+
+@dataclass(frozen=True)
+class BuzzerSettings:
+    PIN: int = 14
+    DEFAULT_FREQUENCY: int = 2500
+
+@dataclass(frozen=True)
+class LCDSettings:
+    RS: int = 18
+    EN: int = 23
+    DATA_PINS: List[int] = field(default_factory=lambda: [12, 16, 20, 21])
+    COLS: int = 16
+    ROWS: int = 2
+    SSH_MESSAGE: str = "Acesso via SSH"
 
 @dataclass(frozen=True)
 class Config:
-    """Configurações centralizadas e imutáveis do servidor."""
     PORT: int = int(os.environ.get("PORT", "8888"))
     LISTEN_ADDRESS: str = "0.0.0.0"
-    STATIC_PATH: str = os.path.join(os.path.dirname(__file__), "client", "static")
-    DEFAULT_PAGE: str = "index.html"
-    LOG_LEVEL: str = "INFO"
-    BOARD_SIZE: int = 3
-    WIN_CONDITION: int = 3
+    STATIC_PATH: str = os.path.join(os.path.dirname(__file__), "..", "client", "static")
+    # ... (outras configs)
+    LCD: LCDSettings = field(default_factory=LCDSettings)
+    BUZZER: BuzzerSettings = field(default_factory=BuzzerSettings)
 
 config = Config()
 ```
@@ -190,16 +203,22 @@ class RoomManager:
             del self.rooms[room_id]
 ```
 
-### 6. `server/handlers.py` ← **camada de aplicação**
+### 6. `server/handlers.py`
 ```python
 import json
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
-from server.manager import RoomManager
-from logger import get_logger
+from core.logger import get_logger
 
 logger = get_logger("Handlers")
-room_manager = RoomManager()
+
+# ... (restante do código)
+```
+
+### 6.5. `hardware/buzzer.py`
+```python
+# ... (implementação com play_mario_victory)
+```
 
 class CreateRoomHandler(RequestHandler):
     def get(self) -> None:
@@ -290,17 +309,19 @@ class GameWebSocket(WebSocketHandler):
                 client.write_message(message)
 ```
 
-### 7. `main.py` ← **raiz do projeto (entry point)**
+### 7. `main.py`
 ```python
 import socket
 from tornado.ioloop import IOLoop
 from tornado.web import Application, StaticFileHandler
 from server.handlers import CreateRoomHandler, GameWebSocket
-from logger import setup_logger, get_logger
-from config import config
+from core.logger import setup_logger, get_logger
+from core.config import config
+from hardware.system import HardwareSystem
 
 setup_logger()
 logger = get_logger("ServidorTornado")
+hardware = HardwareSystem()
 
 def get_local_ip() -> str:
     socket_connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -326,28 +347,27 @@ def make_app() -> Application:
 
 if __name__ == "__main__":
     app = make_app()
-    port = config.PORT
     ip = get_local_ip()
-
-    logger.info("=" * 50)
-    logger.info("⚔️  Mestre Jedi - Jogo da Velha (Tornado Server)")
-    logger.info(f"🌍 IP Local (LAN) Detectado: {ip}")
-    logger.info(f"🔗 Porta de Escuta: {port}")
-    logger.info(f"🚀 Link Base do Servidor: http://{ip}:{port}")
-    logger.info("=" * 50)
-    logger.info("Aguardando Conexões e Criação de Salas...")
-
-    app.listen(port, address=config.LISTEN_ADDRESS)
+    
+    # Inicializa hardware
+    hardware.startup_sequence(ip)
+    
+    app.listen(config.PORT, address=config.LISTEN_ADDRESS)
     IOLoop.current().start()
 ```
 
-### 8. `Makefile` ← **raiz do projeto**
+### 8. `Makefile`
 ```makefile
-.PHONY: run tunnel tunnel-lhr tunnel-serveo dev dev-lhr dev-serveo stop help
+.PHONY: setup run tunnel tunnel-lhr tunnel-serveo dev dev-lhr dev-serveo stop help
 
-# Inicia o servidor Tornado
+# Alvo para configurar o ambiente (Criar venv e instalar dependências)
+setup:
+	python3 -m venv venv
+	./venv/bin/pip install -r requirements.txt
+
+# Inicia o servidor usando a venv
 run:
-	python3 main.py
+	./venv/bin/python3 main.py
 
 # Tunel via localhost.run (URL aleatória gerada automaticamente)
 tunnel-lhr:
@@ -383,6 +403,7 @@ stop:
 help:
 	@echo ""
 	@echo "  Comandos:"
+	@echo "  make setup         - Configura ambiente virtual"
 	@echo "  make run           - Inicia servidor"
 	@echo "  make tunnel-lhr    - Tunel via localhost.run (URL aleatória)"
 	@echo "  make tunnel-serveo - Tunel via serveo.net (https://velhia.serveo.net)"
@@ -393,6 +414,3 @@ help:
 	@echo "  make stop          - Encerra tudo"
 	@echo ""
 ```
-
-### 9. `client/static/ui.js`, `ws.js`, `main.js`, `index.html`, `style.css`
-*(Frontend sem alterações — usar os arquivos originais em `client/static/`)*

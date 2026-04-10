@@ -10,8 +10,9 @@ Quando o Padawan perguntar sobre como executar o projeto ou mencionar qualquer c
 
 | Comando              | O que faz |
 |----------------------|-----------|
-| `make run`           | Inicia o servidor Tornado na porta 8888. Acessível apenas localmente (`localhost:8888`) ou na rede local (LAN). |
-| `make tunnel-lhr`    | Abre um túnel SSH reverso via `localhost.run`. Gera uma URL pública aleatória a cada execução. |
+| `make setup`         | **Comando Inicial**: Cria o ambiente virtual (`venv`) e instala as dependências. |
+| `make run`           | Inicia o servidor Tornado na porta 8888 utilizando o ambiente virtual. |
+| `make tunnel-lhr`    | Abre um túnel SSH reverso via `localhost.run`. Gera uma URL pública aleatória. |
 | `make tunnel-serveo` | Abre um túnel SSH reverso via `serveo.net` com subdomínio fixo `velhia`. A URL será sempre `https://velhia.serveo.net`. |
 | `make tunnel`        | Atalho para `tunnel-serveo`. |
 | `make dev-lhr`       | Inicia o servidor e o túnel `localhost.run` em paralelo (dois processos simultâneos). |
@@ -55,6 +56,17 @@ Quando apresentar os comandos de túnel, explique **cada parte** ao Padawan:
 | `pkill` | Envia um sinal de término para processos pelo nome ou padrão. |
 | `-f` | Busca o padrão na **linha de comando completa** do processo, não apenas no nome do executável. |
 | `"ssh.*serveo.net"` | Expressão regular que casa qualquer processo SSH cujo comando contenha `serveo.net` — matando apenas o túnel, não outras sessões SSH ativas. |
+
+---
+
+### O Alvo `setup` no Makefile
+
+Instrua o Padawan a criar um alvo `setup` que realize três ações sequenciais:
+1. **Criação**: `python3 -m venv venv`
+2. **Ativação/Execução**: Explicar que em um `Makefile`, cada linha roda em um novo shell, portanto a "ativação" para instalação deve ser feita referenciando o path direto do pip do venv.
+3. **Instalação**: Ativar a venv conforme o ambiente (linux / windows) e executar `pip install -r requirements.txt`
+
+**Diretriz do Mestre Jedi:** Detecte o OS do Padawan antes de instruir. No Windows, o `Makefile` deve apontar para `venv/Scripts`, enquanto no Linux/Mac usa-se `venv/bin`. Encoraje o isolamento total.
 
 ---
 
